@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turkmenistan — Living Isochronic Chart</title>
+<meta name="description" content="A self-contained, real-time isochronic travel-time chart for Turkmenistan. Live weather, simulated traffic & flights, and time-of-day aware routing. After Francis Galton, 1881.">
+<style>
+  :root{ color-scheme: light;
+    --paper:#e9dcb4; --paper2:#ece0bd; --edge:#d8c79c; --ink:#3a2c18; --ink2:#6a583c;
+    --teal:#3f6f54; --red:#9d3b27; --gold:#8a6d2c; --line:#bda878; --live:#2f8f53;
+    --skin:rgba(0,0,0,0); /* day/night page tint, set live */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{ font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; color:var(--ink);
+    background:
+      var(--skin),
+      radial-gradient(circle at 18% 8%,rgba(255,255,255,.20),transparent 42%),
+      radial-gradient(circle at 85% 92%,rgba(120,90,40,.12),transparent 46%),var(--paper);
+    -webkit-font-smoothing:antialiased; transition:background .9s ease; }
+  .wrap{max-width:1320px;margin:0 auto;padding:14px 16px 30px}
+  header{ border:2px solid var(--ink); position:relative;
+    background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(120,90,40,.06));
+    padding:12px 18px; display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    box-shadow:0 0 0 4px var(--paper),0 0 0 5px var(--line); }
+  header .seal{ width:58px;height:58px;border-radius:50%;border:2px solid var(--red);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    color:var(--red);text-align:center;line-height:1;flex:none;transform:rotate(-8deg);
+    font-variant:small-caps;letter-spacing:.5px;box-shadow:inset 0 0 0 3px rgba(157,59,39,.25); }
+  header .seal b{font-size:19px} header .seal span{font-size:6.5px;letter-spacing:1px;margin-top:3px}
+  header h1{font-size:23px;margin:0;letter-spacing:3px;text-transform:uppercase;font-weight:600;
+    text-shadow:0 1px 0 rgba(255,250,235,.55),0 -1px 0 rgba(0,0,0,.16)}
+  header h1 small{display:block;font-size:10px;letter-spacing:3.5px;color:var(--ink2);margin-top:3px;font-weight:400}
+  header .meta{margin-left:auto;text-align:right;font-size:11px;color:var(--ink2);font-family:"Courier New",monospace;letter-spacing:.5px;line-height:1.55}
+  header .ru{font-size:13px;letter-spacing:4px;color:var(--teal);text-transform:uppercase}
+  .clockbig{font-size:20px;color:var(--ink);letter-spacing:2px;font-weight:700}
+  .livedot{display:inline-flex;align-items:center;gap:6px;font-weight:700;letter-spacing:1px;font-size:11px;text-transform:uppercase;
+    color:var(--live);font-family:"Courier New",monospace}
+  .livedot i{width:9px;height:9px;border-radius:50%;background:var(--live);display:inline-block;box-shadow:0 0 0 0 rgba(47,143,83,.6);animation:pulse 1.8s infinite}
+  .livedot.sim{color:#9a6a1f} .livedot.sim i{background:#c08a22;animation:none}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,143,83,.55)}70%{box-shadow:0 0 0 7px rgba(47,143,83,0)}100%{box-shadow:0 0 0 0 rgba(47,143,83,0)}}
+  .layout{display:flex;gap:16px;margin-top:14px;align-items:flex-start}
+  .panel{flex:none;width:300px}
+  .stage{flex:1 1 auto;min-width:0}
+  .card{border:1.5px solid var(--ink);background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(120,90,40,.05));
+    padding:12px 13px;margin-bottom:13px;box-shadow:3px 3px 0 rgba(54,41,26,.13)}
+  .card h2{margin:0 0 9px;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--teal);
+    border-bottom:1px solid var(--line);padding-bottom:6px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+  .card h2 .sub{font-size:9.5px;letter-spacing:1px;color:var(--ink2);font-weight:400}
+  .search{width:100%;padding:7px 9px;border:1.5px solid var(--ink2);background:var(--paper);font-family:inherit;font-size:14px;color:var(--ink);outline:none}
+  .citylist{max-height:170px;overflow:auto;margin-top:8px;border:1px solid var(--line);background:rgba(255,255,255,.12)}
+  .citylist::-webkit-scrollbar{width:9px} .citylist::-webkit-scrollbar-thumb{background:var(--line)}
+  .crow{display:flex;justify-content:space-between;gap:6px;padding:5px 9px;cursor:pointer;font-size:13.5px;border-bottom:1px dotted rgba(120,90,40,.3)}
+  .crow:hover{background:rgba(63,111,84,.14)} .crow.sel{background:var(--teal);color:#f4ecd2}
+  .crow .pop{font-family:"Courier New",monospace;font-size:11px;color:var(--ink2)} .crow.sel .pop{color:rgba(255,255,255,.85)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{border:1.5px solid var(--ink2);padding:6px 11px;font-size:12px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;background:var(--paper);user-select:none;display:flex;align-items:center;gap:6px}
+  .chip .dot{width:9px;height:9px;border-radius:50%;background:var(--ink2)}
+  .chip.on{background:var(--teal);color:#f4ecd2;border-color:var(--teal)} .chip.on .dot{background:#f4ecd2}
+  .btn{border:1.5px solid var(--ink2);padding:6px 11px;font-size:11.5px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;background:var(--paper);user-select:none;font-family:inherit;color:var(--ink)}
+  .btn:hover{background:rgba(63,111,84,.14)}
+  .hint{font-size:11px;color:var(--ink2);margin-top:8px;line-height:1.5}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:12px;margin:4px 0}
+  .legend .sw{width:30px;height:14px;border:1px solid rgba(58,44,24,.55);flex:none}
+  .legend b{font-variant:small-caps;letter-spacing:.5px}
+  /* live condition readouts */
+  .nowrow{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+  .nowrow .phase{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink2);font-family:"Courier New",monospace}
+  .kv{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:9px;font-size:12px}
+  .kv div{display:flex;gap:6px} .kv b{color:var(--teal);font-variant:small-caps;letter-spacing:.5px}
+  .wx{display:flex;align-items:center;gap:10px;margin-top:4px}
+  .wx .gl{font-size:30px;line-height:1} .wx .t{font-size:22px;font-weight:700} .wx .d{font-size:11.5px;color:var(--ink2)}
+  .alerts{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+  .alert{font-size:11.5px;line-height:1.35;padding:5px 8px;border-left:3px solid var(--gold);background:rgba(138,109,44,.10)}
+  .alert.bad{border-color:var(--red);background:rgba(157,59,39,.10)}
+  .alert.ok{border-color:var(--teal);background:rgba(63,111,84,.10)}
+  /* flight board */
+  .board{max-height:212px;overflow:auto;border:1px solid var(--line);background:rgba(20,16,10,.04);font-family:"Courier New",monospace}
+  .board::-webkit-scrollbar{width:9px}.board::-webkit-scrollbar-thumb{background:var(--line)}
+  .frow{display:grid;grid-template-columns:48px 1fr 56px;gap:6px;align-items:center;padding:4px 8px;font-size:11.5px;border-bottom:1px dotted rgba(120,90,40,.3)}
+  .frow .fr{text-align:right}
+  .frow .rt{color:var(--ink2)} .frow .rt b{color:var(--ink);font-weight:700}
+  .st{font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;text-align:right;font-weight:700}
+  .st.sch{color:var(--ink2)} .st.chk{color:var(--gold)} .st.brd{color:var(--teal)} .st.air{color:#2c6fb0}
+  .st.land{color:var(--ink2)} .st.del{color:var(--red)} .st.can{color:var(--red);text-decoration:line-through}
+  table.read{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.read th{text-align:left;color:var(--ink2);font-weight:600;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:3px 2px}
+  table.read td{padding:3px 2px;border-bottom:1px dotted rgba(120,90,40,.3)}
+  table.read td.t{font-family:"Courier New",monospace;text-align:right;white-space:nowrap}
+  .via{display:inline-block;width:38px;font-size:10px;letter-spacing:.5px;text-transform:uppercase;text-align:center;border:1px solid;border-radius:2px;padding:0 2px}
+  .via.Air{color:var(--red);border-color:var(--red)} .via.Rail{color:var(--gold);border-color:var(--gold)}
+  .via.Road{color:var(--teal);border-color:var(--teal)} .via.Bus{color:#7a3b1f;border-color:#7a3b1f}
+  .mapwrap{padding:10px;background:
+      radial-gradient(circle at 12% 8%,rgba(255,250,236,.5),transparent 38%),
+      radial-gradient(circle at 88% 94%,rgba(120,90,40,.14),transparent 42%),var(--paper2);
+    border-radius:11px 13px 12px 14px / 13px 11px 14px 12px;border:1px solid var(--edge);
+    box-shadow:6px 7px 14px rgba(54,41,26,.26), 2px 2px 0 rgba(54,41,26,.10), inset 0 0 22px rgba(120,90,40,.16), inset 0 0 0 1px rgba(120,90,40,.2)}
+  .mapbox{position:relative;border:2px solid var(--ink);border-radius:4px;overflow:hidden;background:var(--paper2);
+    box-shadow:inset 0 0 0 3px var(--paper2), inset 0 0 0 4px var(--ink)}
+  .mapbox canvas,.mapbox svg{display:block;width:100%}
+  .mapbox canvas{position:relative;z-index:0}
+  .nightsky{position:absolute;inset:0;z-index:1;pointer-events:none;transition:background 1.2s ease, opacity 1.2s ease}
+  .mapbox svg{position:absolute;inset:0;height:100%;z-index:3}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:11.5px;padding:5px 8px;border:1px solid var(--gold);white-space:nowrap;opacity:0;transition:opacity .1s;font-family:"Courier New",monospace;z-index:6;transform:translate(-50%,-130%)}
+  .caption{position:absolute;left:14px;bottom:14px;max-width:330px;z-index:4;
+    background:linear-gradient(180deg,rgba(236,224,189,.86),rgba(232,219,180,.82));
+    border:1px solid rgba(58,44,24,.4);padding:10px 13px 9px;box-shadow:2px 2px 0 rgba(54,41,26,.18)}
+  .caption .ct{font-size:15px;letter-spacing:1px;font-weight:700;font-variant:small-caps;color:var(--ink);
+    text-shadow:0 1px 0 rgba(255,250,235,.6),0 -1px 0 rgba(0,0,0,.14)}
+  .caption .cs{font-size:10px;letter-spacing:4px;color:var(--ink2);margin:1px 0 6px}
+  .caption p{margin:0;font-size:11px;line-height:1.5;color:var(--ink)}
+  .caption .cby{margin-top:7px;font-size:10px;font-style:italic;color:var(--ink2);border-top:1px solid rgba(120,90,40,.35);padding-top:5px}
+  .ticker{margin-top:10px;border:1.5px solid var(--ink);background:linear-gradient(180deg,rgba(20,16,10,.86),rgba(40,32,20,.82));
+    color:#ecd9a8;overflow:hidden;position:relative;height:30px;display:flex;align-items:center}
+  .ticker .lab{flex:none;background:var(--red);color:#f4ecd2;font-size:10px;font-weight:700;letter-spacing:1px;
+    padding:0 9px;height:100%;display:flex;align-items:center;text-transform:uppercase;font-family:"Courier New",monospace}
+  .ticker .track{white-space:nowrap;will-change:transform;font-family:"Courier New",monospace;font-size:12px;padding-left:100%;
+    animation:scroll 42s linear infinite}
+  .ticker .track span{margin:0 26px}
+  .ticker .track .sep{color:var(--gold)}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+  .explain{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px;padding:9px 12px;
+    border:1.5px solid var(--ink);background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(120,90,40,.05));font-size:12px}
+  .explain .lab{font-variant:small-caps;letter-spacing:1px;font-weight:700;color:var(--teal)}
+  .explain .it{display:flex;align-items:center;gap:6px}
+  .explain .sw{width:24px;height:12px;border:1px solid rgba(58,44,24,.55)}
+  .statbar{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--ink2);font-family:"Courier New",monospace;border-top:1px solid var(--line);padding-top:8px}
+  .statbar b{color:var(--teal)}
+  .foot{font-size:10.5px;color:var(--ink2);line-height:1.6;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .foot b{color:var(--ink)}
+  @media(max-width:900px){ .layout{flex-direction:column} .panel{width:100%} .caption{max-width:60%} header .meta{margin-left:0;text-align:left} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="seal"><b>TM</b><span>Survey<br>Bureau</span></div>
+    <div><h1>Turkmenistan<small>Living Isochronic Chart · real-time conditions · after Francis Galton, 1881</small></h1></div>
+    <div class="meta">
+      <div class="clockbig" id="clock">--:--:--</div>
+      <div id="dateLine">Aşgabat · —</div>
+      <div class="livedot" id="liveBadge"><i></i><span id="liveTxt">CONNECTING…</span></div>
+    </div>
+  </header>
+  <div class="layout">
+    <div class="panel">
+      <div class="card"><h2>Origin City</h2><input class="search" id="search" placeholder="Search 44 cities…  (press / to focus)" autocomplete="off"><div class="citylist" id="citylist"></div></div>
+
+      <div class="card"><h2>Live Conditions <span class="sub" id="srcSub">—</span></h2>
+        <div class="nowrow"><div class="phase" id="phaseTxt">—</div><button class="btn" id="refreshBtn">Refresh</button></div>
+        <div class="wx"><div class="gl" id="wxGl">·</div><div><div class="t" id="wxTemp">—</div><div class="d" id="wxDesc">awaiting data…</div></div></div>
+        <div class="kv">
+          <div><b>Roads</b><span id="kvRoad">—</span></div>
+          <div><b>Air</b><span id="kvAir">—</span></div>
+          <div><b>Wind</b><span id="kvWind">—</span></div>
+        </div>
+        <div class="alerts" id="alerts"></div>
+      </div>
+
+      <div class="card"><h2>Departures Board <span class="sub" id="boardSub">—</span></h2>
+        <div class="board" id="board"></div>
+        <div class="hint">Domestic schedule (Türkmenhowaýollary pattern). Statuses driven by the live clock &amp; airport weather. Air routing waits for the next usable departure — so flying is faster at some hours than others.</div>
+      </div>
+
+      <div class="card"><h2>Modes</h2>
+        <div class="chips" style="margin-bottom:7px"><div class="chip on" data-ground="car"><span class="dot"></span>Car</div><div class="chip" data-ground="bus"><span class="dot"></span>Bus</div></div>
+        <div class="chips"><div class="chip on" id="mRail"><span class="dot"></span>Rail</div><div class="chip on" id="mAir"><span class="dot"></span>Air</div><div class="chip" id="mNet"><span class="dot"></span>Network</div><div class="chip on" id="mLbl"><span class="dot"></span>Labels</div></div>
+        <div class="hint">Bus ~35% slower on the same roads. Times are <b>door-to-door right now</b> for the chosen origin, including live congestion, weather drag, and flight waits.</div></div>
+
+      <div class="card legend"><h2>Explanation of Colours</h2><div id="legend"></div></div>
+    </div>
+
+    <div class="stage">
+      <div class="mapwrap">
+        <div class="mapbox" id="mapbox">
+          <canvas id="field"></canvas>
+          <div class="nightsky" id="nightsky"></div>
+          <svg id="svg" preserveAspectRatio="none"></svg>
+          <div class="caption" id="caption">
+            <div class="ct">Isochronic Passage Chart</div>
+            <div class="cs" id="capStamp">LIVE · FOR TRAVELLERS</div>
+            <p>showing the hours&rsquo; journey from <b id="capOrigin">Aşgabat</b> by the quickest through routes &mdash; <span id="capConv">road, rail and air</span> &mdash; under the conditions prevailing at <b id="capTime">—</b> local time.</p>
+            <div class="cby">After Francis Galton, F.R.S. &middot; recomputed live</div>
+          </div>
+          <div class="tip" id="tip"></div>
+        </div>
+      </div>
+      <div class="ticker"><div class="lab" id="tickLab">LIVE WIRE</div><div class="track" id="track"></div></div>
+      <div class="explain"><span class="lab">Explanation of colours.</span><span class="it"><span class="sw" style="background:rgb(95,138,70)"></span>Green ≤2 h</span><span class="it"><span class="sw" style="background:rgb(227,205,108)"></span>Yellow 2–4 h</span><span class="it"><span class="sw" style="background:rgb(226,166,138)"></span>Pink 4–6 h</span><span class="it"><span class="sw" style="background:rgb(116,176,158)"></span>Blue 6–9 h</span><span class="it"><span class="sw" style="background:rgb(185,127,78)"></span>Brown &gt;9 h</span></div>
+      <div class="statbar" id="statbar"></div>
+      <div class="card" style="margin-top:13px"><h2>Travel Time From <span id="originName" style="color:var(--ink)">Aşgabat</span> <span class="sub" id="readSub">computed live</span></h2>
+        <div style="display:flex;gap:22px;flex-wrap:wrap">
+          <table class="read" style="flex:1;min-width:230px"><thead><tr><th>City</th><th>Via</th><th style="text-align:right">Door-to-door</th></tr></thead><tbody id="readA"></tbody></table>
+          <table class="read" style="flex:1;min-width:230px"><thead><tr><th>City</th><th>Via</th><th style="text-align:right">Door-to-door</th></tr></thead><tbody id="readB"></tbody></table>
+        </div></div>
+      <div class="foot" id="foot"></div>
+    </div>
+  </div>
+</div>
+<script>
+/* =================================================================================
+   TURKMENISTAN — LIVING ISOCHRONIC CHART
+   Self-contained. No build step, no keys. Real weather (Open-Meteo, keyless+CORS),
+   real Ashgabat clock + sun, and a deterministic live simulation of traffic,
+   road incidents and a domestic flight board — all folded into the routing.
+   Degrades to a fully synthetic but plausible simulation if the network is blocked.
+   ================================================================================= */
+
+/* ===================== STATIC DATA ===================== */
+const DATA = {"cities": [{"name": "Ashgabat", "lat": 37.95, "lon": 58.383, "region": "Ahal", "pop": 1030063, "air": "ASB"}, {"name": "Arkadag", "lat": 37.84, "lon": 58.12, "region": "Ahal", "pop": 70000, "air": null}, {"name": "Anew", "lat": 37.889, "lon": 58.516, "region": "Ahal", "pop": 28653, "air": null}, {"name": "Gokdepe", "lat": 38.16, "lon": 57.95, "region": "Ahal", "pop": 33381, "air": null}, {"name": "Baherden", "lat": 38.434, "lon": 57.424, "region": "Ahal", "pop": 37588, "air": null}, {"name": "Kaka", "lat": 37.35, "lon": 59.61, "region": "Ahal", "pop": 33315, "air": null}, {"name": "Tejen", "lat": 37.383, "lon": 60.503, "region": "Ahal", "pop": 67488, "air": null}, {"name": "Sarahs", "lat": 36.538, "lon": 61.22, "region": "Ahal", "pop": 31269, "air": null}, {"name": "Balkanabat", "lat": 39.51, "lon": 54.364, "region": "Balkan", "pop": 123190, "air": "BKN"}, {"name": "Turkmenbasy", "lat": 40.022, "lon": 52.963, "region": "Balkan", "pop": 91745, "air": "KRW"}, {"name": "Gyzylarbat", "lat": 38.978, "lon": 56.281, "region": "Balkan", "pop": 48552, "air": null}, {"name": "Bereket", "lat": 39.243, "lon": 55.515, "region": "Balkan", "pop": 23697, "air": null}, {"name": "Gumdag", "lat": 39.208, "lon": 54.591, "region": "Balkan", "pop": 30884, "air": null}, {"name": "Hazar", "lat": 39.432, "lon": 53.122, "region": "Balkan", "pop": 14671, "air": null}, {"name": "Jebel", "lat": 39.503, "lon": 54.18, "region": "Balkan", "pop": 15056, "air": null}, {"name": "Magtymguly", "lat": 38.43, "lon": 56.272, "region": "Balkan", "pop": 15386, "air": null}, {"name": "Esenguly", "lat": 37.466, "lon": 53.972, "region": "Balkan", "pop": 9000, "air": null}, {"name": "Dasoguz", "lat": 41.836, "lon": 59.967, "region": "Dasoguz", "pop": 201142, "air": "TAZ"}, {"name": "Koneurgench", "lat": 42.328, "lon": 59.154, "region": "Dasoguz", "pop": 37176, "air": null}, {"name": "Boldumsaz", "lat": 42.128, "lon": 59.671, "region": "Dasoguz", "pop": 39582, "air": null}, {"name": "Akdepe", "lat": 42.055, "lon": 59.38, "region": "Dasoguz", "pop": 28045, "air": null}, {"name": "Andalyp", "lat": 41.833, "lon": 59.65, "region": "Dasoguz", "pop": 36594, "air": null}, {"name": "Gorogly", "lat": 41.65, "lon": 59.916, "region": "Dasoguz", "pop": 26770, "air": null}, {"name": "Gubadag", "lat": 42.067, "lon": 59.967, "region": "Dasoguz", "pop": 18950, "air": null}, {"name": "Shabat", "lat": 41.838, "lon": 60.133, "region": "Dasoguz", "pop": 19392, "air": null}, {"name": "S.Turkmenbasy", "lat": 42.383, "lon": 58.8, "region": "Dasoguz", "pop": 20720, "air": null}, {"name": "Turkmenabat", "lat": 39.073, "lon": 63.578, "region": "Lebap", "pop": 230861, "air": "CRZ"}, {"name": "Farap", "lat": 39.183, "lon": 63.575, "region": "Lebap", "pop": 20547, "air": null}, {"name": "Seydi", "lat": 39.483, "lon": 62.913, "region": "Lebap", "pop": 29670, "air": null}, {"name": "Danew", "lat": 39.273, "lon": 63.158, "region": "Lebap", "pop": 15409, "air": null}, {"name": "Sayat", "lat": 38.783, "lon": 63.88, "region": "Lebap", "pop": 21619, "air": null}, {"name": "Halach", "lat": 38.098, "lon": 64.88, "region": "Lebap", "pop": 20778, "air": null}, {"name": "Garabekewul", "lat": 38.475, "lon": 64.154, "region": "Lebap", "pop": 15135, "air": null}, {"name": "Kerki", "lat": 37.834, "lon": 65.21, "region": "Lebap", "pop": 32489, "air": "KEA"}, {"name": "Kerkichi", "lat": 37.853, "lon": 65.237, "region": "Lebap", "pop": 14996, "air": null}, {"name": "Gazojak", "lat": 41.183, "lon": 61.408, "region": "Lebap", "pop": 21035, "air": null}, {"name": "Koytendag", "lat": 37.372, "lon": 66.3, "region": "Lebap", "pop": 18816, "air": null}, {"name": "Magdanly", "lat": 37.62, "lon": 65.622, "region": "Lebap", "pop": 44508, "air": null}, {"name": "Mary", "lat": 37.594, "lon": 61.83, "region": "Mary", "pop": 167027, "air": "MYP"}, {"name": "Bayramaly", "lat": 37.617, "lon": 62.165, "region": "Mary", "pop": 70376, "air": null}, {"name": "Yoloten", "lat": 37.298, "lon": 62.353, "region": "Mary", "pop": 30709, "air": null}, {"name": "Turkmengala", "lat": 37.433, "lon": 62.333, "region": "Mary", "pop": 16696, "air": null}, {"name": "Murgap", "lat": 37.495, "lon": 61.975, "region": "Mary", "pop": 14822, "air": null}, {"name": "Serhetabat", "lat": 35.28, "lon": 62.344, "region": "Mary", "pop": 16038, "air": null}], "road": [[9, 13, 61.6], [9, 14, 122.4], [14, 12, 49.6], [12, 8, 37.3], [8, 11, 96.8], [11, 10, 63.5], [10, 4, 102.0], [4, 3, 44.7], [3, 0, 36.1], [11, 15, 150.8], [15, 10, 76.7], [8, 16, 363.5], [13, 16, 415.4], [0, 2, 11.1], [0, 1, 22.5], [2, 1, 32.4], [2, 5, 99.6], [5, 6, 64.1], [6, 38, 101.1], [6, 7, 121.6], [38, 39, 25.5], [38, 42, 16.9], [42, 40, 41.1], [39, 40, 39.2], [39, 41, 25.3], [41, 40, 15.5], [40, 43, 293.2], [39, 26, 178.6], [26, 27, 10.8], [26, 29, 39.1], [29, 28, 31.4], [26, 30, 39.8], [30, 31, 127.6], [31, 32, 86.3], [32, 33, 142.2], [33, 34, 3.8], [33, 37, 54.5], [37, 36, 82.3], [31, 33, 50.2], [28, 35, 286.9], [17, 21, 27.0], [17, 22, 21.1], [17, 24, 13.2], [17, 23, 26.4], [21, 20, 35.2], [20, 23, 52.9], [23, 19, 27.7], [19, 18, 52.4], [18, 25, 37.2], [20, 19, 27.7], [35, 17, 189.3], [26, 35, 402.9], [0, 17, 579.5]], "rail": [[0, 38, 480], [38, 26, 270], [0, 6, 180], [6, 38, 170], [0, 3, 60], [3, 4, 70], [4, 10, 110], [10, 11, 80], [11, 8, 110], [8, 9, 170], [11, 9, 260], [0, 17, 720], [26, 35, 240], [35, 17, 180], [38, 43, 240], [26, 33, 260]], "flights": [[0, 17, 60], [0, 26, 60], [0, 38, 50], [0, 9, 60], [0, 8, 45], [0, 33, 75], [17, 26, 60], [17, 38, 70], [38, 8, 70], [26, 38, 45]], "airports": {"Ashgabat": "ASB", "Mary": "MYP", "Dasoguz": "TAZ", "Turkmenabat": "CRZ", "Turkmenbasy": "KRW", "Balkanabat": "BKN", "Kerki": "KEA"}, "access": {"Ashgabat": 18, "Mary": 12, "Dasoguz": 14, "Turkmenabat": 15, "Turkmenbasy": 28, "Balkanabat": 12, "Kerki": 10}, "params": {"arrive": 20, "bus_factor": 1.35, "off_car": 52, "off_bus": 40}};
+const BORDER = [[52.95, 41.95], [54.05, 42.2], [55.4, 41.35], [56.6, 41.3], [57.6, 42.1], [58.6, 42.42], [59.25, 42.52], [59.65, 42.55], [60.05, 42.2], [60.55, 42.1], [61.05, 41.4], [61.62, 41.3], [62.25, 40.35], [62.65, 39.85], [63.35, 39.62], [64.25, 39.2], [64.55, 38.7], [65.25, 38.42], [65.65, 37.62], [66.05, 37.58], [66.68, 37.85], [66.55, 37.28], [65.7, 37.18], [65.0, 37.18], [64.2, 36.88], [63.05, 36.25], [62.75, 35.0], [62.3, 35.12], [62.1, 35.55], [61.5, 36.02], [61.12, 36.52], [60.5, 36.62], [59.8, 37.22], [58.8, 37.62], [58.2, 37.72], [57.4, 38.02], [56.5, 38.2], [55.5, 38.1], [54.8, 37.62], [54.2, 37.4], [53.78, 37.52], [53.92, 38.22], [53.4, 39.05], [52.92, 39.36], [53.4, 39.55], [54.05, 40.0], [52.72, 40.02], [52.66, 40.5], [53.05, 41.0], [52.9, 41.3], [53.2, 41.62], [53.0, 41.92], [52.95, 41.95]];
+const DISP = {"Ashgabat": "Aşgabat", "Arkadag": "Arkadag", "Anew": "Änew", "Gokdepe": "Gökdepe", "Baherden": "Bäherden", "Kaka": "Kaka", "Tejen": "Tejen", "Sarahs": "Sarahs", "Balkanabat": "Balkanabat", "Turkmenbasy": "Türkmenbaşy", "Gyzylarbat": "Gyzylarbat", "Bereket": "Bereket", "Gumdag": "Gumdag", "Hazar": "Hazar", "Jebel": "Jebel", "Magtymguly": "Magtymguly", "Esenguly": "Esenguly", "Dasoguz": "Daşoguz", "Koneurgench": "Köneürgenç", "Boldumsaz": "Boldumsaz", "Akdepe": "Akdepe", "Andalyp": "Andalyp", "Gorogly": "Görogly", "Gubadag": "Gubadag", "Shabat": "Şabat", "S.Turkmenbasy": "S.Türkmenbaşy", "Turkmenabat": "Türkmenabat", "Farap": "Farap", "Seydi": "Seýdi", "Danew": "Dänew", "Sayat": "Saýat", "Halach": "Halaç", "Garabekewul": "Garabekewül", "Kerki": "Kerki", "Kerkichi": "Kerkiçi", "Gazojak": "Gazojak", "Koytendag": "Köýtendag", "Magdanly": "Magdanly", "Mary": "Mary", "Bayramaly": "Baýramaly", "Yoloten": "Ýolöten", "Turkmengala": "Türkmengala", "Murgap": "Murgap", "Serhetabat": "Serhetabat"};
+const AIRDISP = {"ASB":"ASB","MYP":"MYP","TAZ":"TAZ","CRZ":"CRZ","KRW":"KRW","BKN":"BKN","KEA":"KEA"};
+
+const C=DATA.cities, NC=C.length, P=DATA.params, ACCESS=DATA.access, AIRP=DATA.airports;
+const airCities=C.map((c,i)=>c.air?i:-1).filter(i=>i>=0);
+const airNode={}; airCities.forEach((ci,k)=>airNode[ci]=NC+k);
+const NN=NC+airCities.length;
+const nameToIdx={}; C.forEach((c,i)=>nameToIdx[c.name]=i);
+
+/* ===================== APP STATE ===================== */
+let state={ origin:0, ground:'car', rail:true, air:true, net:false, labels:true };
+try{ const s=JSON.parse(localStorage.getItem('iso-live-v1')); if(s&&Number.isInteger(s.origin)&&s.origin>=0&&s.origin<NC) Object.assign(state,s); }catch(e){}
+const _hm=location.hash.match(/o=(\d+)/); if(_hm&&+_hm[1]>=0&&+_hm[1]<NC) state.origin=+_hm[1];
+function persist(){ try{ localStorage.setItem('iso-live-v1',JSON.stringify(state)); }catch(e){} }
+let T=new Float64Array(NC), VIA=new Array(NC).fill('Road');
+
+/* ===================== LIVE STATE ===================== */
+const LIVE={ source:'init', weather:{}, sun:null, fetchedAt:0, ok:false };
+let NOW={};               // per-recompute snapshot
+let FLIGHTS=[];           // generated daily schedule
+let ROAD_URBAN=new Float64Array(DATA.road.length); // per-edge congestion susceptibility
+let INCIDENTS=[];         // current road incidents (for ticker)
+
+/* small deterministic hashes (stable simulation, no Math.random in the model) */
+function hash2(x){ x=(x^61)^(x>>>16); x=x+(x<<3); x=x^(x>>>4); x=Math.imul(x,0x27d4eb2d); x=x^(x>>>15); return x>>>0; }
+function hf(x){ return (hash2(x)%100000)/100000; }   // 0..1
+
+/* ===================== ASHGABAT TIME (no DST; via Intl) ===================== */
+const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function ashParts(){
+  const d=new Date();
+  let y,mo,da,h,mi,s,wd;
+  try{
+    const f=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Ashgabat',hour12:false,
+      year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',weekday:'short'});
+    const p={}; f.formatToParts(d).forEach(x=>p[x.type]=x.value);
+    y=+p.year; mo=+p.month; da=+p.day; h=+p.hour%24; mi=+p.minute; s=+p.second;
+    wd=WD.indexOf(p.weekday);
+  }catch(e){
+    const u=d.getTime()+5*3600000; const a=new Date(u);  // fallback fixed +5
+    y=a.getUTCFullYear(); mo=a.getUTCMonth()+1; da=a.getUTCDate();
+    h=a.getUTCHours(); mi=a.getUTCMinutes(); s=a.getUTCSeconds(); wd=a.getUTCDay();
+  }
+  const min=h*60+mi;
+  const doy=Math.floor((Date.UTC(y,mo-1,da)-Date.UTC(y,0,0))/86400000);
+  return {y,mo,da,h,mi,s,wd,min,doy,
+    epochMin:Math.floor(Date.now()/60000), dayBucket:Math.floor((Date.now()+5*3600000)/86400000)};
+}
+
+/* ===================== WEATHER ===================== */
+/* WMO weather_code -> presentation + physical penalties */
+function wxGlyph(code){
+  if(code>=95)return '⛈';
+  if(code>=85)return '❄'; if(code>=71&&code<=77)return '❄';
+  if(code>=80)return '🌧'; if(code>=51&&code<=67)return '🌧';
+  if(code===45||code===48)return '🌫';
+  if(code===2)return '⛅'; if(code===3)return '☁'; if(code===1)return '🌤';
+  return '☀';
+}
+function wxDesc(code){
+  const m={0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Freezing fog',
+    51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',
+    66:'Freezing rain',67:'Freezing rain',71:'Light snow',73:'Snow',75:'Heavy snow',77:'Snow grains',
+    80:'Rain showers',81:'Rain showers',82:'Violent showers',85:'Snow showers',86:'Snow showers',
+    95:'Thunderstorm',96:'Thunderstorm + hail',99:'Severe thunderstorm'};
+  return m[code]||'—';
+}
+/* fractional extra road time from this cell's weather */
+function roadWxPenalty(w){
+  if(!w)return 0; const c=w.code; let p=0;
+  if(c===45||c===48)p=0.14;
+  else if(c>=51&&c<=55)p=0.06; else if(c>=61&&c<=63)p=0.12; else if(c===65||c===67||c===66)p=0.22;
+  else if(c>=80&&c<=82)p=0.16;
+  else if(c>=71&&c<=75)p=0.40; else if(c===77)p=0.30; else if(c>=85)p=0.45;
+  else if(c>=95)p=0.26;
+  if((w.wind||0)>55)p+=0.05; if((w.wind||0)>75)p+=0.07;
+  return p;
+}
+/* minutes of flight delay this airport's weather imposes */
+function airportPenalty(w){
+  if(!w)return 0; const c=w.code; let d=0;
+  if(c===45||c===48)d=35;
+  else if(c>=95)d=60; else if(c>=85)d=50; else if(c>=71&&c<=77)d=45;
+  else if(c===65||c===67||c===66||c===82)d=22; else if(c>=61&&c<=63)d=12;
+  const g=w.gust||w.wind||0; if(g>50)d+=15; if(g>70)d+=20;
+  return d;
+}
+function grounded(w){ if(!w)return false; const g=w.gust||w.wind||0; return (w.code>=96)||(w.code>=85&&w.code<=86&&g>55)||g>82; }
+function W_AT(name){ return LIVE.weather[name]; }
+
+/* synthetic but plausible weather, used as fallback so the app ALWAYS works */
+function synthWeather(c){
+  const {doy,min,epochMin}=NOW, hr=min/60;
+  const seasonal=18-17*Math.cos((doy-205)/365*2*Math.PI);    // Jul peak
+  const latAdj=(39-c.lat)*1.4;                                // north cooler
+  const diurnal=-7*Math.cos((hr-15)/24*2*Math.PI);
+  const jit=(hf(Math.round(c.lat*53)+Math.round(c.lon*97))-0.5)*5;
+  const temp=Math.round(seasonal+latAdj+diurnal+jit);
+  const winter=(doy<75||doy>320);
+  const seed=(Math.round(c.lat*7)*131+Math.round(c.lon*5)*17)^Math.floor(epochMin/360);
+  const r=hf(seed)*100; const wind=Math.round(8+hf(seed*3)*20);
+  let code=0,precip=0;
+  if(r<62){code=hf(seed*5)<0.5?0:1;}
+  else if(r<80){code=2;}
+  else if(r<90){code=3;}
+  else if(r<96){code= winter&&c.lat>40?71:61; precip=0.8;}
+  else {code= winter&&c.lat>40?73:80; precip=1.6;}
+  return {code,temp,precip,wind,gust:wind+Math.round(hf(seed*7)*16),cloud: code===0?8:code===3?92:50,
+          isDay:hr>6&&hr<20, synth:true};
+}
+function ensureWeather(){ for(const c of C) if(!LIVE.weather[c.name]) LIVE.weather[c.name]=synthWeather(c); }
+
+async function fetchWeather(){
+  const lats=C.map(c=>c.lat.toFixed(3)).join(','), lons=C.map(c=>c.lon.toFixed(3)).join(',');
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+lats+'&longitude='+lons+
+    '&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover,is_day'+
+    '&daily=sunrise,sunset&timezone=Asia%2FAshgabat&forecast_days=1';
+  const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),8000);
+  try{
+    const res=await fetch(url,{signal:ctl.signal,cache:'no-store'}); clearTimeout(to);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    let j=await res.json(); const arr=Array.isArray(j)?j:[j];
+    if(arr.length<NC) throw new Error('short payload');
+    for(let i=0;i<NC;i++){ const cur=arr[i].current||{};
+      LIVE.weather[C[i].name]={ code:cur.weather_code|0, temp:Math.round(cur.temperature_2m),
+        precip:cur.precipitation||0, wind:Math.round(cur.wind_speed_10m||0), gust:Math.round(cur.wind_gusts_10m||cur.wind_speed_10m||0),
+        cloud:cur.cloud_cover||0, isDay:!!cur.is_day, synth:false }; }
+    const d0=arr[0].daily;
+    if(d0&&d0.sunrise&&d0.sunset){ const toMin=t=>{const m=String(t).match(/T(\d\d):(\d\d)/);return m?(+m[1]*60+ +m[2]):null;};
+      LIVE.sun={ rise:toMin(d0.sunrise[0]), set:toMin(d0.sunset[0]) }; }
+    LIVE.source='live'; LIVE.ok=true; LIVE.fetchedAt=Date.now();
+  }catch(e){ clearTimeout(to); LIVE.source='sim'; LIVE.ok=false; LIVE.fetchedAt=Date.now();
+    ensureWeather(); /* synthesize for everything */
+    for(const c of C) LIVE.weather[c.name]=synthWeather(c);
+  }
+  buildBadge();
+}
+
+/* ===================== FLIGHT SCHEDULE ===================== */
+function buildSchedule(){
+  FLIGHTS=[]; let seq=110;
+  const seen=new Set();
+  for(const [a,b,ft] of DATA.flights){
+    const k=Math.min(a,b)+'-'+Math.max(a,b); if(seen.has(k))continue; seen.add(k);
+    const hub=(a===0||b===0);
+    const times= hub? [7*60+30,13*60,18*60+30] : [8*60+30,16*60+15];
+    for(const [x,y] of [[a,b],[b,a]]){
+      times.forEach((tm,ix)=>{ FLIGHTS.push({ id:'T5-'+(seq++), a:x, b:y, dep:tm, ft, ix }); });
+    }
+  }
+  FLIGHTS.sort((p,q)=>p.dep-q.dep);
+}
+/* per-flight delay (minutes) and cancellation — deterministic per day */
+function flightDelay(f){
+  const oW=W_AT(C[f.a].name), dW=W_AT(C[f.b].name);
+  let d=airportPenalty(oW)+Math.round(airportPenalty(dW)*0.5);
+  const h=hf((f.a*131+f.b*17+f.dep*7)^NOW.dayBucket);
+  if(h<0.10) d+=15+Math.round(hf((f.dep*13)^NOW.dayBucket)*30);
+  return d;
+}
+function flightCancelled(f){
+  const oW=W_AT(C[f.a].name), dW=W_AT(C[f.b].name);
+  if(grounded(oW)||grounded(dW)) return true;
+  return hf(((f.a+1)*(f.b+7)+f.dep*3)^NOW.dayBucket)<0.025;
+}
+/* status string for the board, given current minutes */
+function flightStatus(f){
+  if(flightCancelled(f)) return {cls:'can',txt:'CANCELLED'};
+  const del=flightDelay(f), dep=f.dep+del, now=NOW.min, land=dep+f.ft;
+  if(now>=land) return {cls:'land',txt:'LANDED'};
+  if(now>=dep)  return {cls:'air', txt:'IN AIR'};
+  if(del>=10 && now< dep) return {cls:'del', txt:'DELAY +'+del+'m'};
+  if(now>=dep-12) return {cls:'brd', txt:'BOARDING'};
+  if(now>=dep-40) return {cls:'chk', txt:'CHECK-IN'};
+  return {cls:'sch', txt:'SCHEDULED'};
+}
+
+/* ===================== ROAD SUSCEPTIBILITY (precompute once) ===================== */
+function buildUrban(){
+  DATA.road.forEach(([a,b,km],i)=>{
+    const pa=C[a].pop, pb=C[b].pop, big=Math.max(pa,pb);
+    let s= big>300000?0.95: big>120000?0.78: big>40000?0.55:0.34;
+    if(km>200) s*=0.55; else if(km>110) s*=0.78;   // open desert highway barely congests
+    ROAD_URBAN[i]=s;
+  });
+}
+/* time-of-day congestion (1.0 = free flow) */
+function trafficTimeFactor(min,weekend){
+  const peak=(c,w,a)=>a*Math.exp(-((min-c)*(min-c))/(2*w*w));
+  let f=1.0;
+  f+=peak(8.4*60,46, weekend?0.14:0.46);
+  f+=peak(18*60, 56, weekend?0.20:0.56);
+  f+=peak(13*60, 60, weekend?0.10:0.13);
+  if(min<5*60||min>22.5*60) f-=0.13;
+  return Math.max(0.82,f);
+}
+
+/* ===================== LIVE SNAPSHOT + INCIDENTS ===================== */
+function takeSnapshot(){
+  const a=ashParts();
+  const weekend=(a.wd===6||a.wd===0);              // TM weekend Sat/Sun
+  const tf=trafficTimeFactor(a.min,weekend);
+  // average weather drag across cities
+  let wsum=0; for(const c of C) wsum+=roadWxPenalty(W_AT(c.name)); const avgWx=wsum/NC;
+  NOW={ ...a, weekend, trafficTime:tf, avgWx, bucket:Math.floor(a.epochMin/4) };
+  // road incidents (deterministic per 4-min bucket)
+  INCIDENTS=[];
+  DATA.road.forEach(([ra,rb,km],i)=>{
+    const h=hf(Math.imul(i+1,2654435761)^NOW.bucket);
+    if(h<0.09){ const extra=0.15+hf(Math.imul(i+7,40503)^NOW.bucket)*0.40;
+      INCIDENTS.push({i,a:ra,b:rb,extra,
+        kind: h<0.03?'Accident': h<0.06?'Road works':'Heavy traffic'}); }
+  });
+}
+function incidentExtra(i){ const inc=INCIDENTS.find(x=>x.i===i); return inc?inc.extra:0; }
+
+/* ===================== GRAPH + DIJKSTRA (live weighted) ===================== */
+function buildAdj(){
+  const adj=Array.from({length:NN},()=>[]);
+  const add=(a,b,w,t)=>adj[a].push([b,w,t]);
+  const busMult= state.ground==='bus'?P.bus_factor:1.0;
+  const gLabel= state.ground==='bus'?'Bus':'Road';
+  // roads with live congestion
+  DATA.road.forEach(([a,b,km],i)=>{
+    const baseMin=km;                                  // base minutes already encoded as travel-time units
+    const wxP=Math.max(roadWxPenalty(W_AT(C[a].name)),roadWxPenalty(W_AT(C[b].name)));
+    const mult= (1 + (NOW.trafficTime-1)*ROAD_URBAN[i] + wxP + incidentExtra(i)) * busMult;
+    const w=baseMin*mult;
+    add(a,b,w,gLabel); add(b,a,w,gLabel);
+  });
+  // rail (schedule; small weather slack in foul weather)
+  if(state.rail) for(const [a,b,t] of DATA.rail){
+    const wxP=Math.max(roadWxPenalty(W_AT(C[a].name)),roadWxPenalty(W_AT(C[b].name)));
+    const w=t*(1+wxP*0.25); add(a,b,w,'Rail'); add(b,a,w,'Rail');
+  }
+  // air: terminal access edges + LIVE flight legs (wait for next usable departure)
+  if(state.air){
+    for(const name in AIRP){ const ci=nameToIdx[name], an=airNode[ci], ac=ACCESS[name];
+      add(ci,an,ac,'Air'); add(an,ci,P.arrive+ac,'Air'); }
+    for(const f of FLIGHTS){
+      if(flightCancelled(f)) continue;
+      const effDep=f.dep+flightDelay(f);
+      const wait=effDep-NOW.min;
+      if(wait<60) continue;                 // need 60 min lead to make the flight
+      if(wait>600) continue;                // nothing usable within 10h -> air not viable now
+      add(airNode[f.a],airNode[f.b], wait+f.ft, 'Air');
+    }
+  }
+  return adj;
+}
+function dijkstra(src){
+  const adj=buildAdj();
+  const dist=new Float64Array(NN).fill(Infinity), pedge=new Array(NN).fill(null);
+  dist[src]=0; const heap=[];
+  const push=(d,n)=>{heap.push([d,n]);let i=heap.length-1;while(i>0){const p=(i-1)>>1;if(heap[p][0]<=heap[i][0])break;[heap[p],heap[i]]=[heap[i],heap[p]];i=p;}};
+  const pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){heap[0]=last;let i=0;for(;;){let l=2*i+1,r=2*i+2,s=i;if(l<heap.length&&heap[l][0]<heap[s][0])s=l;if(r<heap.length&&heap[r][0]<heap[s][0])s=r;if(s===i)break;[heap[s],heap[i]]=[heap[i],heap[s]];i=s;}}return top;};
+  push(0,src);
+  while(heap.length){ const [d,u]=pop(); if(d>dist[u])continue;
+    for(const [v,w,t] of adj[u]){ if(d+w<dist[v]){dist[v]=d+w;pedge[v]=[u,t];push(d+w,v);} } }
+  for(let i=0;i<NC;i++){ T[i]=dist[i];
+    let cur=i,air=false,rail=false,bus=false,g=0;
+    while(pedge[cur]&&g++<300){const [p,t]=pedge[cur]; if(t==='Air')air=true; else if(t==='Rail')rail=true; else if(t==='Bus')bus=true; cur=p;}
+    VIA[i]= air?'Air': rail?'Rail': bus?'Bus':'Road';
+  }
+}
+
+/* ===================== PROJECTION ===================== */
+const LON0=52.3,LON1=67.0,LAT0=34.6,LAT1=42.85;
+const KX=Math.cos(((LAT0+LAT1)/2)*Math.PI/180);
+const rawW=(LON1-LON0)*KX, rawH=(LAT1-LAT0);
+let W=960,H=Math.round(W*rawH/rawW),SCALE=W/rawW;
+function proj(lon,lat){ return [ (lon-LON0)*KX*SCALE, (LAT1-lat)*SCALE ]; }
+function invX(px){ return LON0+(px/SCALE)/KX; }
+function invY(py){ return LAT1-(py/SCALE); }
+function inside(lon,lat){ let c=false;
+  for(let i=0,j=BORDER.length-1;i<BORDER.length;j=i++){ const xi=BORDER[i][0],yi=BORDER[i][1],xj=BORDER[j][0],yj=BORDER[j][1];
+    if(((yi>lat)!==(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi)+xi))c=!c; } return c; }
+function fieldAt(lon,lat){
+  const baseOff= state.ground==='bus'?P.off_bus:P.off_car;
+  const drag= 1+(NOW.trafficTime-1)*0.35+NOW.avgWx*0.7;
+  const off=baseOff/drag;
+  let best=Infinity;
+  for(let i=0;i<NC;i++){ const dx=(lon-C[i].lon)*KX*111.0, dy=(lat-C[i].lat)*111.0;
+    const t=T[i]+Math.sqrt(dx*dx+dy*dy)/off*60; if(t<best)best=t; }
+  return best/60;
+}
+
+/* ===================== PALETTE / CONTOURS ===================== */
+const BANDS=[
+  {max:2,col:[95,138,70],key:'green',label:'within 2 hours'},
+  {max:4,col:[227,205,108],key:'yellow',label:'2 – 4 hours'},
+  {max:6,col:[226,166,138],key:'pink',label:'4 – 6 hours'},
+  {max:9,col:[116,176,158],key:'blue',label:'6 – 9 hours'},
+  {max:1e9,col:[185,127,78],key:'brown',label:'over 9 hours'}
+];
+function bandIdx(h){ for(let i=0;i<BANDS.length;i++) if(h<=BANDS[i].max)return i; return BANDS.length-1; }
+const BOUNDS=[2,4,6,9], LEVELS=[1,2,3,4,5,6,9,12], REG={x:1.5,y:0.9};
+
+/* ===================== RENDER ===================== */
+const cv=document.getElementById('field'), svg=document.getElementById('svg');
+const tip=document.getElementById('tip'), mapbox=document.getElementById('mapbox');
+let GW,GH,Fgrid,Igrid;
+function countryPath(ctx){ ctx.beginPath();
+  for(let i=0;i<BORDER.length;i++){const [x,y]=proj(BORDER[i][0],BORDER[i][1]); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.closePath(); }
+function svgCountryD(){ let d=''; for(let i=0;i<BORDER.length;i++){const [x,y]=proj(BORDER[i][0],BORDER[i][1]); d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);} return d+'Z'; }
+function computeGrids(){
+  GW=Math.max(140,Math.round(W/3.2)); GH=Math.max(105,Math.round(H/3.2));
+  Fgrid=new Float64Array((GW+1)*(GH+1)); Igrid=new Uint8Array((GW+1)*(GH+1));
+  for(let gy=0;gy<=GH;gy++){ const lat=invY(gy/GH*H);
+    for(let gx=0;gx<=GW;gx++){ const lon=invX(gx/GW*W), k=gy*(GW+1)+gx;
+      if(inside(lon,lat)){Igrid[k]=1;Fgrid[k]=fieldAt(lon,lat);} else {Igrid[k]=0;Fgrid[k]=1e9;} } }
+}
+function drawField(){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  ctx.save(); try{ ctx.filter='blur('+Math.max(9,W*0.022).toFixed(0)+'px)'; }catch(e){}
+  countryPath(ctx); ctx.fillStyle='rgba(150,184,168,0.55)'; ctx.fill(); ctx.filter='none'; ctx.restore();
+  const off=document.createElement('canvas'); off.width=GW; off.height=GH;
+  const octx=off.getContext('2d'); const img=octx.createImageData(GW,GH);
+  for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){ const k=gy*(GW+1)+gx,o=(gy*GW+gx)*4;
+    if(!Igrid[k]){img.data[o+3]=0;continue;}
+    const c=BANDS[bandIdx(Fgrid[k])].col; img.data[o]=c[0];img.data[o+1]=c[1];img.data[o+2]=c[2];img.data[o+3]=212; }
+  octx.putImageData(img,0,0);
+  ctx.save(); countryPath(ctx); ctx.clip();
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+  ctx.drawImage(off,0,0,GW,GH,REG.x,REG.y,W,H);
+  ctx.globalAlpha=.065; ctx.fillStyle='#3a2c18';
+  for(let i=0;i<2400;i++)ctx.fillRect(hf(i*7+NOW.bucket)*W,hf(i*13+NOW.bucket*3)*H,1,1);
+  ctx.globalAlpha=1; ctx.restore();
+  const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.34,W/2,H/2,Math.max(W,H)*0.62);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(74,52,22,0.17)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+}
+function stitchPolys(segs){
+  const Q=2,key=p=>Math.round(p[0]*Q)+'_'+Math.round(p[1]*Q);
+  const used=new Array(segs.length).fill(false),map=new Map();
+  segs.forEach((s,i)=>{ for(const e of [0,1]){ const k=key(s[e]); (map.get(k)||map.set(k,[]).get(k)).push([i,e]); } });
+  const nextAt=pt=>{ const c=map.get(key(pt))||[]; for(const [i,e] of c){ if(!used[i])return [i,e]; } return null; };
+  const polys=[];
+  for(let i=0;i<segs.length;i++){ if(used[i])continue; used[i]=true;
+    let poly=[segs[i][0],segs[i][1]],g=0;
+    while(g++<6000){ const nx=nextAt(poly[poly.length-1]); if(!nx)break; used[nx[0]]=true; poly.push(segs[nx[0]][nx[1]^1]); }
+    g=0; while(g++<6000){ const nx=nextAt(poly[0]); if(!nx)break; used[nx[0]]=true; poly.unshift(segs[nx[0]][nx[1]^1]); }
+    polys.push(poly); }
+  return polys;
+}
+function chaikin(p,iter){ if(p.length<3)return p;
+  const closed=Math.hypot(p[0][0]-p[p.length-1][0],p[0][1]-p[p.length-1][1])<1.5;
+  for(let it=0;it<iter;it++){ const q=[]; if(!closed)q.push(p[0]);
+    for(let i=0;i<p.length-1;i++){ const a=p[i],b=p[i+1];
+      q.push([a[0]*0.75+b[0]*0.25,a[1]*0.75+b[1]*0.25]); q.push([a[0]*0.25+b[0]*0.75,a[1]*0.25+b[1]*0.75]); }
+    if(!closed)q.push(p[p.length-1]); else q.push(q[0]); p=q; }
+  return p;
+}
+function polyD(p){ let d='M'+p[0][0].toFixed(1)+' '+p[0][1].toFixed(1); for(let i=1;i<p.length;i++)d+='L'+p[i][0].toFixed(1)+' '+p[i][1].toFixed(1); return d; }
+function contourSegs(level){
+  const segs=[]; const val=(gx,gy)=>Fgrid[gy*(GW+1)+gx], ins=(gx,gy)=>Igrid[gy*(GW+1)+gx];
+  const ix=(va,vb)=>(level-va)/(vb-va);
+  for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){
+    if(!(ins(gx,gy)&&ins(gx+1,gy)&&ins(gx,gy+1)&&ins(gx+1,gy+1)))continue;
+    const tl=val(gx,gy),tr=val(gx+1,gy),br=val(gx+1,gy+1),bl=val(gx,gy+1);
+    let ci=0; if(tl>level)ci|=8; if(tr>level)ci|=4; if(br>level)ci|=2; if(bl>level)ci|=1;
+    if(ci===0||ci===15)continue;
+    const x0=gx/GW*W,x1=(gx+1)/GW*W,y0=gy/GH*H,y1=(gy+1)/GH*H;
+    const Tp=()=>[x0+(x1-x0)*ix(tl,tr),y0],Bp=()=>[x0+(x1-x0)*ix(bl,br),y1],
+          Lp=()=>[x0,y0+(y1-y0)*ix(tl,bl)],Rp=()=>[x1,y0+(y1-y0)*ix(tr,br)];
+    let a,b;
+    switch(ci){ case 1:case 14:a=Lp();b=Bp();break; case 2:case 13:a=Bp();b=Rp();break;
+      case 3:case 12:a=Lp();b=Rp();break; case 4:case 11:a=Tp();b=Rp();break;
+      case 6:case 9:a=Tp();b=Bp();break; case 7:case 8:a=Lp();b=Tp();break;
+      case 5:a=Lp();b=Tp();segs.push([a,b]);a=Bp();b=Rp();break;
+      case 10:a=Lp();b=Bp();segs.push([a,b]);a=Tp();b=Rp();break; }
+    if(a&&b)segs.push([a,b]);
+  } return segs;
+}
+function fmt(min){ if(!isFinite(min))return '—'; const h=Math.floor(min/60),m=Math.round(min%60); return h>0?(h+'h '+(m<10?'0':'')+m+'m'):(m+'m'); }
+
+function render(){
+  drawField();
+  let s=''; const cd=svgCountryD();
+  s+='<defs><clipPath id="cc"><path d="'+cd+'"/></clipPath>'+
+     '<filter id="halo"><feMorphology in="SourceAlpha" operator="dilate" radius="1.3"/>'+
+     '<feFlood flood-color="#efe4c4" flood-opacity="0.85"/><feComposite in2="SourceAlpha" operator="in"/>'+
+     '<feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
+     '<filter id="rough" x="-5%" y="-5%" width="110%" height="110%">'+
+     '<feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="7" result="n"/>'+
+     '<feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';
+  s+='<g clip-path="url(#cc)" stroke="#7d6a45" stroke-width="0.5" opacity="0.30">';
+  for(let lon=53;lon<=66;lon++){const [x]=proj(lon,LAT0);s+='<line x1="'+x.toFixed(1)+'" y1="0" x2="'+x.toFixed(1)+'" y2="'+H+'"/>';}
+  for(let lat=35;lat<=42;lat++){const [,y]=proj(LON0,lat);s+='<line x1="0" y1="'+y.toFixed(1)+'" x2="'+W+'" y2="'+y.toFixed(1)+'"/>';}
+  s+='</g>';
+  s+='<g font-family="Courier New,monospace" font-size="9.5" fill="#5c4a32">';
+  for(let lon=54;lon<=66;lon+=2){const [x]=proj(lon,LAT0);
+    s+='<text x="'+x.toFixed(1)+'" y="12" text-anchor="middle">'+lon+'</text>';
+    s+='<text x="'+x.toFixed(1)+'" y="'+(H-4).toFixed(1)+'" text-anchor="middle">'+lon+'</text>';}
+  for(let lat=36;lat<=42;lat+=2){const [,y]=proj(LON0,lat);
+    s+='<text x="4" y="'+(y+3).toFixed(1)+'">'+lat+'</text>';
+    s+='<text x="'+(W-4)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+lat+'</text>';}
+  s+='</g>';
+  s+='<g clip-path="url(#cc)" stroke-linejoin="round" stroke-linecap="round">'; const placed=[];
+  for(const L of LEVELS){ const segs=contourSegs(L); if(!segs.length)continue;
+    const major=BOUNDS.includes(L);
+    const polys=stitchPolys(segs).map(p=>chaikin(p,2)).filter(p=>p.length>3);
+    let d=''; for(const poly of polys)d+=polyD(poly);
+    s+='<path d="'+d+'" fill="none" stroke="#3a2c18" stroke-width="'+(major?1.5:0.7)+'" opacity="'+(major?0.82:0.38)+'"/>';
+    if(state.labels&&major){ for(const poly of polys){ if(poly.length<12)continue;
+      const mi=Math.floor(poly.length/2),mx=poly[mi][0],my=poly[mi][1]; let ok=true;
+      for(const p of placed){if(Math.hypot(p[0]-mx,p[1]-my)<132){ok=false;break;}} if(!ok)continue;
+      const a=poly[Math.max(0,mi-2)],b=poly[Math.min(poly.length-1,mi+2)];
+      let ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI; if(ang>90)ang-=180; if(ang<-90)ang+=180;
+      s+='<g transform="translate('+mx.toFixed(1)+','+my.toFixed(1)+') rotate('+ang.toFixed(0)+')">'+
+         '<text x="0" y="3" text-anchor="middle" font-size="10.5" font-family="Courier New,monospace" fill="#3a2c18" filter="url(#halo)" font-weight="bold">'+L+' h</text></g>';
+      placed.push([mx,my]); } }
+  }
+  s+='</g>';
+  s+='<path d="'+cd+'" fill="none" stroke="rgba(0,150,162,0.34)" stroke-width="2" transform="translate('+(REG.x).toFixed(1)+','+(REG.y).toFixed(1)+')"/>';
+  s+='<path d="'+cd+'" fill="none" stroke="rgba(190,40,64,0.30)" stroke-width="2" transform="translate('+(-REG.x*0.8).toFixed(1)+','+(-REG.y*0.8).toFixed(1)+')"/>';
+  s+='<path d="'+cd+'" fill="none" stroke="#3a2c18" stroke-width="2"/>';
+  // live road network with incident highlights
+  if(state.net){ const line=(a,b,st,w,da)=>{const [x1,y1]=proj(C[a].lon,C[a].lat),[x2,y2]=proj(C[b].lon,C[b].lat);
+      return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+st+'" stroke-width="'+w+'"'+(da?' stroke-dasharray="'+da+'"':'')+' opacity="0.75"/>';};
+    s+='<g clip-path="url(#cc)">';
+    DATA.road.forEach(([a,b])=>s+=line(a,b,'#5c4a32',1.0,''));
+    if(state.rail)for(const [a,b] of DATA.rail)s+=line(a,b,'#7a3b1f',1.2,'5 3');
+    if(state.air)for(const [a,b] of DATA.flights)s+=line(a,b,'#9d3b27',1.1,'1 4');
+    s+='</g>'; }
+  // incident pips (always shown, subtle)
+  s+='<g clip-path="url(#cc)">';
+  for(const inc of INCIDENTS){ const [x1,y1]=proj(C[inc.a].lon,C[inc.a].lat),[x2,y2]=proj(C[inc.b].lon,C[inc.b].lat);
+    const mx=(x1+x2)/2,my=(y1+y2)/2; const col=inc.kind==='Accident'?'#9d3b27':inc.kind==='Road works'?'#8a6d2c':'#b5641f';
+    s+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="2.4" opacity="0.5" stroke-dasharray="2 3"/>';
+    s+='<circle cx="'+mx.toFixed(1)+'" cy="'+my.toFixed(1)+'" r="2.6" fill="'+col+'" stroke="#efe4c4" stroke-width="0.6"/>'; }
+  s+='</g>';
+  // city dots + labels + weather glyphs
+  for(let i=0;i<NC;i++){ const [x,y]=proj(C[i].lon,C[i].lat); const big=C[i].pop>60000,isO=(i===state.origin);
+    const r=isO?0:(big?3:2);
+    if(!isO){ s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+(C[i].air?'#9d3b27':'#2c2114')+'" stroke="#efe4c4" stroke-width="0.7" data-i="'+i+'" class="cdot"/>';
+      if(C[i].air)s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(r+2.3)+'" fill="none" stroke="#9d3b27" stroke-width="0.7" opacity="0.7"/>'; }
+    if(big||isO){ const lx=x+(C[i].lon>62?-6:6),anc=(C[i].lon>62?'end':'start');
+      s+='<text x="'+lx.toFixed(1)+'" y="'+(y-5).toFixed(1)+'" font-size="'+(isO?12:10.5)+'" text-anchor="'+anc+'" font-style="italic" font-family="Iowan Old Style,Palatino,Georgia,serif" fill="#2c2114" filter="url(#halo)" '+(isO?'font-weight="bold"':'')+'>'+DISP[C[i].name]+'</text>';
+      const w=W_AT(C[i].name); if(w) s+='<text x="'+(x+(C[i].lon>62?-6:6)).toFixed(1)+'" y="'+(y+11).toFixed(1)+'" font-size="11" text-anchor="'+anc+'">'+wxGlyph(w.code)+'</text>'; }
+  }
+  const [ox,oy]=proj(C[state.origin].lon,C[state.origin].lat);
+  s+='<g><circle cx="'+ox+'" cy="'+oy+'" r="9" fill="none" stroke="#9d3b27" stroke-width="1.4"/>'+
+     '<circle cx="'+ox+'" cy="'+oy+'" r="5" fill="none" stroke="#9d3b27" stroke-width="1.2"/>'+
+     '<circle cx="'+ox+'" cy="'+oy+'" r="2.4" fill="#9d3b27"/>'+
+     '<line x1="'+ox+'" y1="'+(oy-13)+'" x2="'+ox+'" y2="'+(oy+13)+'" stroke="#9d3b27" stroke-width="0.8"/>'+
+     '<line x1="'+(ox-13)+'" y1="'+oy+'" x2="'+(ox+13)+'" y2="'+oy+'" stroke="#9d3b27" stroke-width="0.8"/></g>';
+  s+='<g filter="url(#rough)" fill="none" stroke="#3a2c18">'+
+     '<rect x="3.5" y="3.5" width="'+(W-7).toFixed(1)+'" height="'+(H-7).toFixed(1)+'" stroke-width="2.4"/>'+
+     '<rect x="8.5" y="8.5" width="'+(W-17).toFixed(1)+'" height="'+(H-17).toFixed(1)+'" stroke-width="0.8" opacity="0.7"/></g>';
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.style.height=H+'px'; svg.innerHTML=s;
+  svg.querySelectorAll('.cdot').forEach(el=>{ el.style.cursor='pointer';
+    el.addEventListener('mouseenter',()=>{const i=+el.dataset.i;const [x,y]=proj(C[i].lon,C[i].lat);const w=W_AT(C[i].name);
+      tip.style.left=(x/W*100)+'%';tip.style.top=(y/H*100)+'%';
+      tip.textContent=DISP[C[i].name]+' · '+fmt(T[i])+' · '+VIA[i]+(w?' · '+w.temp+'° '+wxDesc(w.code):'');tip.style.opacity=1;});
+    el.addEventListener('mouseleave',()=>tip.style.opacity=0);
+    el.addEventListener('click',()=>setOrigin(+el.dataset.i)); });
+  buildLegend(); buildReadout(); buildStat(); setCaption();
+}
+
+/* ===================== PANELS ===================== */
+function buildLegend(){ let s='';
+  for(const b of BANDS){ const [r,g,bl]=b.col;
+    s+='<div class="row"><span class="sw" style="background:rgb('+r+','+g+','+bl+')"></span><b>'+b.key.replace(/^./,c=>c.toUpperCase())+'</b> &nbsp;'+b.label+'</div>'; }
+  document.getElementById('legend').innerHTML=s; }
+function buildReadout(){ const order=[...Array(NC).keys()].filter(i=>i!==state.origin).sort((a,b)=>T[a]-T[b]);
+  const half=Math.ceil(order.length/2);
+  const rows=ids=>ids.map(i=>'<tr><td>'+DISP[C[i].name]+'</td><td><span class="via '+VIA[i]+'">'+VIA[i]+'</span></td><td class="t">'+fmt(T[i])+'</td></tr>').join('');
+  document.getElementById('readA').innerHTML=rows(order.slice(0,half));
+  document.getElementById('readB').innerHTML=rows(order.slice(half));
+  document.getElementById('originName').textContent=DISP[C[state.origin].name]; }
+function buildStat(){ const arr=[...Array(NC).keys()].filter(i=>i!==state.origin);
+  const far=arr.reduce((m,i)=>T[i]>T[m]?i:m,arr[0]),near=arr.reduce((m,i)=>T[i]<T[m]?i:m,arr[0]);
+  const avg=arr.reduce((s,i)=>s+T[i],0)/arr.length,within4=arr.filter(i=>T[i]<=240).length;
+  document.getElementById('statbar').innerHTML='NEAREST: <b>'+DISP[C[near].name]+'</b> '+fmt(T[near])+
+    ' · FARTHEST: <b>'+DISP[C[far].name]+'</b> '+fmt(T[far])+' · MEAN: <b>'+fmt(avg)+'</b> · WITHIN 4 h: <b>'+within4+'/43</b>'+
+    ' · NET LOAD: <b>'+Math.round((NOW.trafficTime-1)*100+NOW.avgWx*100)+'%</b>'; }
+function setCaption(){
+  document.getElementById('capOrigin').textContent=DISP[C[state.origin].name];
+  const conv=[ state.ground==='bus'?'bus':'road', state.rail?'rail':null, state.air?'air':null ].filter(Boolean);
+  document.getElementById('capConv').textContent= conv.length>1?conv.slice(0,-1).join(', ')+' and '+conv[conv.length-1]:conv[0];
+  const a=NOW; document.getElementById('capTime').textContent=String(a.h).padStart(2,'0')+':'+String(a.mi).padStart(2,'0');
+  document.getElementById('capStamp').textContent=(LIVE.source==='live'?'LIVE':'SIMULATED')+' · '+(a.weekend?'WEEKEND':'WEEKDAY');
+}
+
+/* live condition cards */
+function buildBadge(){
+  const b=document.getElementById('liveBadge'),t=document.getElementById('liveTxt');
+  if(LIVE.source==='live'){ b.classList.remove('sim'); t.textContent='LIVE DATA'; }
+  else if(LIVE.source==='sim'){ b.classList.add('sim'); t.textContent='SIMULATION'; }
+  else { t.textContent='CONNECTING…'; }
+  const age=LIVE.fetchedAt?Math.round((Date.now()-LIVE.fetchedAt)/60000):'—';
+  document.getElementById('srcSub').textContent= LIVE.source==='live'?('Open-Meteo · '+age+'m ago'): LIVE.source==='sim'?'offline model':'—';
+}
+function phaseInfo(){
+  const min=NOW.min; const rise=LIVE.sun?LIVE.sun.rise:360, set=LIVE.sun?LIVE.sun.set:1200;
+  if(min<rise-50||min>set+50) return {name:'Night', sky:'linear-gradient(180deg,rgba(18,24,58,.50),rgba(10,14,38,.62))', tint:'linear-gradient(180deg,rgba(20,28,70,.10),rgba(10,14,40,.12))'};
+  if(Math.abs(min-rise)<=50) return {name:'Dawn', sky:'linear-gradient(180deg,rgba(255,170,90,.20),rgba(120,90,140,.28))', tint:'linear-gradient(180deg,rgba(255,180,110,.07),transparent)'};
+  if(Math.abs(min-set)<=55) return {name:'Dusk', sky:'linear-gradient(180deg,rgba(255,150,70,.22),rgba(90,60,110,.34))', tint:'linear-gradient(180deg,rgba(255,150,80,.08),transparent)'};
+  if(min<rise+90||min>set-90) return {name:'Golden hour', sky:'linear-gradient(180deg,rgba(255,200,120,.12),rgba(150,110,70,.10))', tint:'rgba(255,200,120,0.04)'};
+  return {name:'Daylight', sky:'linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.02))', tint:'rgba(0,0,0,0)'};
+}
+function applySky(){
+  const ph=phaseInfo();
+  document.getElementById('nightsky').style.background=ph.sky;
+  document.documentElement.style.setProperty('--skin',ph.tint);
+  document.getElementById('phaseTxt').textContent=ph.name+(LIVE.sun?(' · ↑'+fmtMin(LIVE.sun.rise)+' ↓'+fmtMin(LIVE.sun.set)):'');
+  return ph;
+}
+function fmtMin(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+
+function buildConditions(){
+  const o=W_AT(C[state.origin].name);
+  document.getElementById('wxGl').textContent= o?wxGlyph(o.code):'·';
+  document.getElementById('wxTemp').textContent= o?(o.temp+'°C'):'—';
+  document.getElementById('wxDesc').textContent= o?(wxDesc(o.code)+' · '+DISP[C[state.origin].name]):'—';
+  const load=Math.round((NOW.trafficTime-1)*100);
+  document.getElementById('kvRoad').textContent= load<=4?'clear': load<20?('+'+load+'% busy'):('+'+load+'% heavy');
+  // air: count cancellations / delays now
+  let canc=0,del=0; for(const f of FLIGHTS){ const st=flightStatus(f); if(st.cls==='can')canc++; else if(st.cls==='del')del++; }
+  document.getElementById('kvAir').textContent= canc?(canc+' cancelled'): del?(del+' delayed'):'on time';
+  document.getElementById('kvWind').textContent= o?(o.wind+' km/h'):'—';
+  // alerts
+  const al=[];
+  for(const name in AIRP){ const w=W_AT(name); if(!w)continue;
+    if(grounded(w)) al.push({c:'bad',t:'✈ '+DISP[name]+' airport grounded — '+wxDesc(w.code)});
+    else if(airportPenalty(w)>=30) al.push({c:'',t:'✈ '+DISP[name]+' delays — '+wxDesc(w.code)}); }
+  // worst road weather
+  let worst=null; for(const c of C){ const p=roadWxPenalty(W_AT(c.name)); if(p>=0.2&&(!worst||p>worst.p))worst={p,name:c.name,w:W_AT(c.name)}; }
+  if(worst) al.push({c:'',t:'☔ '+DISP[worst.name]+' region — '+wxDesc(worst.w.code)+' slowing roads'});
+  if(INCIDENTS.length) al.push({c:'',t:'⚠ '+INCIDENTS.length+' active road incident'+(INCIDENTS.length>1?'s':'')+' nationwide'});
+  if(!al.length) al.push({c:'ok',t:'✓ Clear conditions across the network'});
+  document.getElementById('alerts').innerHTML=al.slice(0,4).map(a=>'<div class="alert '+a.c+'">'+a.t+'</div>').join('');
+}
+function buildBoard(){
+  const rows=FLIGHTS.map(f=>{ const st=flightStatus(f); const del=flightCancelled(f)?0:flightDelay(f);
+    const dep=fmtMin(f.dep);
+    return {sort:f.dep, html:'<div class="frow"><span class="rt"><b>'+(C[f.a].air||'')+'</b></span>'+
+      '<span class="rt">'+dep+' → '+(C[f.b].air||'')+' · '+f.id+'</span>'+
+      '<span class="st '+st.cls+'">'+st.txt+'</span></div>'}; });
+  // upcoming first, then the rest
+  rows.sort((p,q)=>p.sort-q.sort);
+  document.getElementById('board').innerHTML=rows.map(r=>r.html).join('');
+  let active=0; for(const f of FLIGHTS){ const s=flightStatus(f); if(s.cls==='brd'||s.cls==='air'||s.cls==='chk')active++; }
+  document.getElementById('boardSub').textContent= FLIGHTS.length+' legs · '+active+' active';
+}
+function buildTicker(){
+  const items=[];
+  const t=fmtMin(NOW.min);
+  for(const inc of INCIDENTS.slice(0,6)){
+    items.push(inc.kind+' on '+DISP[C[inc.a].name]+'–'+DISP[C[inc.b].name]+' (+'+Math.round(inc.extra*100)+'%)'); }
+  for(const f of FLIGHTS){ const st=flightStatus(f);
+    if(st.cls==='brd') items.push('✈ '+f.id+' '+(C[f.a].air)+'→'+(C[f.b].air)+' now boarding');
+    else if(st.cls==='del') items.push('✈ '+f.id+' '+(C[f.a].air)+'→'+(C[f.b].air)+' '+st.txt);
+    else if(st.cls==='can') items.push('✈ '+f.id+' '+(C[f.a].air)+'→'+(C[f.b].air)+' CANCELLED'); }
+  for(const name in AIRP){ const w=W_AT(name); if(w&&airportPenalty(w)>=30) items.push('🌫 '+DISP[name]+': '+wxDesc(w.code)+', '+w.wind+' km/h'); }
+  const o=W_AT(C[state.origin].name); if(o) items.push('Origin '+DISP[C[state.origin].name]+': '+o.temp+'°C '+wxDesc(o.code));
+  if(!items.length) items.push('All routes nominal — clear roads, flights on schedule');
+  const txt=items.map(x=>'<span>'+x+'</span>').join('<span class="sep">◆</span>');
+  document.getElementById('track').innerHTML=txt+'<span class="sep">◆</span>'+txt;
+  document.getElementById('tickLab').textContent= LIVE.source==='live'?'LIVE WIRE':'SIM WIRE';
+}
+
+/* ===================== RECOMPUTE / TICK ===================== */
+function recompute(){ takeSnapshot(); dijkstra(state.origin); computeGrids(); render();
+  applySky(); buildConditions(); buildBoard(); buildTicker(); buildBadge(); }
+function lightUpdate(){ // cheap per-second: clock, sky, board statuses, ticker — no Dijkstra
+  takeSnapshot(); const a=NOW;
+  document.getElementById('clock').textContent=String(a.h).padStart(2,'0')+':'+String(a.mi).padStart(2,'0')+':'+String(a.s).padStart(2,'0');
+  document.getElementById('dateLine').textContent='Aşgabat · '+WD[a.wd]+' '+String(a.da).padStart(2,'0')+'.'+String(a.mo).padStart(2,'0')+'.'+a.y+' (UTC+5)';
+  applySky(); buildBoard(); buildConditions(); buildTicker();
+}
+let lastHeavyMin=-1;
+function maybeHeavy(){ // recompute routing when the minute (and thus conditions) advance
+  if(NOW.min!==lastHeavyMin){ lastHeavyMin=NOW.min; dijkstra(state.origin); computeGrids(); render(); }
+}
+
+function setOrigin(i){ state.origin=i; markList(); persist(); history.replaceState(null,'','#o='+i); recompute(); }
+function buildList(filter=''){ const cl=document.getElementById('citylist'),f=filter.trim().toLowerCase();
+  const items=[...Array(NC).keys()].filter(i=>DISP[C[i].name].toLowerCase().includes(f)||C[i].name.toLowerCase().includes(f)).sort((a,b)=>C[b].pop-C[a].pop);
+  cl.innerHTML=items.map(i=>'<div class="crow'+(i===state.origin?' sel':'')+'" data-i="'+i+'"><span>'+DISP[C[i].name]+'</span><span class="pop">'+C[i].pop.toLocaleString()+(C[i].air?' ✈':'')+'</span></div>').join('');
+  cl.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',()=>setOrigin(+el.dataset.i))); }
+function markList(){ document.querySelectorAll('.crow').forEach(el=>el.classList.toggle('sel',+el.dataset.i===state.origin)); }
+
+/* ===================== EVENTS ===================== */
+document.getElementById('search').addEventListener('input',e=>buildList(e.target.value));
+document.querySelectorAll('[data-ground]').forEach(el=>el.addEventListener('click',()=>{
+  state.ground=el.dataset.ground; document.querySelectorAll('[data-ground]').forEach(x=>x.classList.toggle('on',x.dataset.ground===state.ground)); persist(); recompute(); }));
+function toggleChip(id,key,after){ const el=document.getElementById(id);
+  el.addEventListener('click',()=>{state[key]=!state[key];el.classList.toggle('on',state[key]); persist(); after?after():recompute();}); }
+toggleChip('mRail','rail'); toggleChip('mAir','air'); toggleChip('mNet','net'); toggleChip('mLbl','labels',()=>render());
+document.getElementById('refreshBtn').addEventListener('click',async()=>{ await fetchWeather(); recompute(); });
+
+const _cl=document.getElementById('citylist'); _cl.tabIndex=0;
+_cl.addEventListener('keydown',e=>{ if(!['ArrowDown','ArrowUp','Enter','Home','End'].includes(e.key))return;
+  const items=[..._cl.querySelectorAll('.crow')]; if(!items.length)return;
+  const cur=items.findIndex(x=>x.classList.contains('sel')); let next;
+  if(e.key==='Enter'){ if(cur>=0)setOrigin(+items[cur].dataset.i); return; }
+  if(e.key==='Home')next=0; else if(e.key==='End')next=items.length-1;
+  else if(e.key==='ArrowDown')next=cur<0?0:(cur+1)%items.length; else next=cur<=0?items.length-1:cur-1;
+  e.preventDefault(); setOrigin(+items[next].dataset.i); items[next].scrollIntoView({block:'nearest'}); });
+document.addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==document.getElementById('search')){
+  e.preventDefault(); const s=document.getElementById('search'); s.focus(); s.select(); } });
+svg.addEventListener('click',e=>{ if(e.target.classList&&e.target.classList.contains('cdot'))return;
+  const r=svg.getBoundingClientRect(); const px=(e.clientX-r.left)/r.width*W, py=(e.clientY-r.top)/r.height*H;
+  let best=-1,bestD=Infinity; for(let i=0;i<NC;i++){ const [cx,cy]=proj(C[i].lon,C[i].lat); const d=(cx-px)**2+(cy-py)**2; if(d<bestD){bestD=d;best=i;} }
+  if(best>=0)setOrigin(best); });
+let rt; function resize(){ const w=mapbox.clientWidth||960; W=w; SCALE=W/rawW; H=Math.round(W*rawH/rawW); mapbox.style.height=H+'px'; recompute(); }
+window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(resize,180);});
+
+/* ===================== FOOT ===================== */
+document.getElementById('foot').innerHTML='A <b>living</b> homage to Francis Galton&rsquo;s 1881 Isochronic Passage Chart, recomputed continuously for modern Turkmenistan. '+
+  '<b>Real:</b> Aşgabat local time (UTC+5, no DST), and current weather for all 44 cities via Open-Meteo (keyless, no account, fetched on load &amp; every 10 min; sunrise/sunset drive the day–night skin). '+
+  '<b>Simulated, but driven by the real clock &amp; weather:</b> road congestion (morning/evening rush, weekend easing, segment-specific susceptibility), live road incidents, and a Türkmenhowaýollary-style domestic departures board — flight statuses and weather delays make air routing faster at some hours than others. '+
+  'Door-to-door times come from Dijkstra over a multimodal network (53 road links · 16 rail segments · 10 flight legs). Colour bands: green ≤2 h, yellow 2–4, pink 4–6, blue 6–9, brown &gt;9 h; surface via marching squares. '+
+  'If the network is blocked, it falls back to a deterministic offline weather model so it still works anywhere. '+
+  'Shareable origin via <code>#o=N</code> · localStorage memory · keyboard nav (↑/↓/Enter, / to search) · click the map to pick the nearest city. '+
+  'Not for ticketing, emergencies, border crossings, or operational travel.';
+
+/* ===================== BOOT ===================== */
+buildUrban(); buildSchedule(); takeSnapshot(); ensureWeather();   // synthetic first paint = instant
+buildList(); buildBadge();
+window.addEventListener('load',()=>{ resize(); });
+recompute();
+// fetch real weather in the background; repaint when it lands
+fetchWeather().then(()=>recompute());
+// timers
+setInterval(()=>{ lightUpdate(); maybeHeavy(); },1000);     // clock + sky every second; routing when the minute ticks
+setInterval(()=>{ fetchWeather().then(()=>recompute()); }, 10*60*1000);  // refresh real weather every 10 min
+</script>
+</body>
+</html>
